@@ -8,14 +8,34 @@ import json
 import yaml
 import tempfile
 import shutil
+import argparse
 
 logging.basicConfig(level=logging.DEBUG,
                         format=u'%(pathname)s[LINE:%(lineno)d]# %(levelname)-8s [%(asctime)s]  %(message)s')
 
 def main():
-    api_url = "" # http://grafana.example.org:4053/api
-    api_key = ""
-    # print("Hello world!")
+    params_parser = argparse.ArgumentParser(
+        description='Grafana dashboards and datasources backup',
+        epilog='Create tarball with grafana data'
+    )
+    required = params_parser.add_argument_group('required named arguments')
+
+    required.add_argument('--api-key', metavar='<key>', dest='key',
+        help='Your API Key, it must have admin permissions', required=True)
+    required.add_argument('--api-url', metavar='<url>', dest='url',
+        help='Api url', required=True)
+
+    params_parser.add_argument('--archivename', metavar="<name>", dest="archivename",
+        help='Archive name of output file (WITHOUT FILE EXTENSION)', default='grafana-backup')
+
+    params_parser.add_argument('action', default='backup', choices=['backup', 'restore'],
+        help='Action, it can be "backup" or "restore"')
+
+    args = params_parser.parse_args()
+
+    api_url = args.url
+    api_key = args.key
+
     api_session = requests.Session()
     api_session.headers.update({"Authorization": "Bearer {}".format(api_key)})
 
@@ -59,7 +79,7 @@ def main():
             tmpdirname.cleanup()
             raise
 
-    shutil.make_archive("grafana-backup", "gztar", root_dir=tmpdirname.name)
+    shutil.make_archive(args.archivename, "gztar", root_dir=tmpdirname.name)
     tmpdirname.cleanup()
 
 if __name__ == '__main__':
